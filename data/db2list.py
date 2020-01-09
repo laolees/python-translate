@@ -3,7 +3,8 @@
 import dbm
 import codecs
 
-db = dbm.open('./vocabulary', 'r')
+db = dbm.open('./sun', 'r')
+db['Batman'] = 'Pow!'
 vDict = db.keys()
 vList = sorted(vDict)
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 # -*- coding:utf-8 -*-
 import os
 import argparse
@@ -33,7 +33,7 @@ class Bing(object):
         text = resp.text
         if (resp.status_code == 200) and (text):
             soup = BeautifulSoup(text, 'lxml')
-            if soup.find('h4').text.strip() != word.decode('utf-8'):
+            if soup.find('h4').text.strip() != word:
                 return None
             lis = soup.find_all('li')
             trans = []
@@ -74,7 +74,8 @@ class Youdao(object):
         if (resp.status_code == 200) and (text):
             tree = ET.ElementTree(ET.fromstring(text))
             returnPhrase = tree.find('return-phrase')
-            if returnPhrase.text.strip() != word.decode('utf-8'):
+            # print(word)
+            if returnPhrase.text.strip() != word:
                 return None
             customTranslation = tree.find('custom-translation')
             if not customTranslation:
@@ -129,7 +130,8 @@ class Iciba(object):
 
 
 path = os.path.dirname(os.path.realpath(__file__))
-db = dbm.open(path + '/data/vocabulary', 'c')
+db={}
+# db = dbm.open(path + '/data/vocabulary', 'c')
 DEFAULT_SERVICE = 'bing'
 
 
@@ -180,8 +182,9 @@ class Client(object):
         hyphenation = None
         try:
             resp = sess.get(url, allow_redirects=False, timeout=100)
-            pattern = ur'<h1 class="keyword" tip="音节划分：([^"]+)">'
-            hyphenation = re.search(pattern, resp.text).group(1).replace('&#183;', '-')
+            # pattern = ur'<h1 class="keyword" tip="音节划分：([^"]+)">'
+            # hyphenation = re.search(pattern, resp.text).group(1).replace('&#183;', '-')
+            hyphenation = resp.text
         except:
             pass
         return hyphenation
@@ -204,7 +207,7 @@ class Client(object):
     def updateDB(self):
         if self.trans:
             db[self.word] = self.trans.encode('utf-8')
-        db.close()
+        # db.close()
         return True
 
 
@@ -240,8 +243,9 @@ if __name__ == '__main__':
     trans = _trans.get()
     if trans:
         if hyphen:
-            print hyphen
-        print trans
+            # print(hyphen)
+            print("success")
+        print(trans)
         if args.pronounce:
             p1 = Process(target=C.pronounce, args=(args.pronounce,))
             p1.daemon = True
@@ -253,7 +257,7 @@ if __name__ == '__main__':
     else:
         suggestion = _suggestion.get()
         if not suggestion:
-            print 'No translations found for \"%s\" .' % (word)
+            print('No translations found for \"%s\" .' % (word))
         else:
-            print 'No translations found for \"%s\", maybe you meant:\
-                  \n\n%s' % (word, ' / '.join(suggestion))
+            print('No translations found for \"%s\", maybe you meant:\
+                  \n\n%s' % (word, ' / '.join(suggestion)))
