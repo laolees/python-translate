@@ -4,9 +4,14 @@ import os
 import argparse
 import dbm
 import requests
+from urllib import request, parse
 import re
 from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import Process
+import time
+import random
+import hashlib
+import json
 
 
 class Bing(object):
@@ -52,39 +57,59 @@ class Youdao(object):
         super(Youdao, self).__init__()
 
     def query(self, word):
-        try:
-            import xml.etree.cElementTree as ET
-        except ImportError:
-            import xml.etree.ElementTree as ET
-        sess = requests.Session()
-        headers = {
-            'Host': 'dict.youdao.com',
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:50.0) Gecko/20100101 Firefox/50.0',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate'
+        ts = str(int(1000 * time.time()))
+        salt = ts + str(random.randint(0, 10))
+        content = 'fanyideskweb' + word + salt + 'n%A-rKaT5fb[Gy?;N5@Tj'
+        sign = hashlib.md5(content.encode()).hexdigest()
+        url = "http://fanyi.youdao.com/translate_o?smartresult=dict&smartresult=rule"
+
+        data = {
+            "i": word,
+            "from": "AUTO",
+            "to": "AUTO",
+            "smartresult": "dict",
+            "client": "fanyideskweb",
+            "salt": salt,
+            "sign": sign,
+            'ts': ts,
+            'bv': 'bbb3ed55971873051bc2ff740579bb49',
+            "doctype": "json",
+            "version": "2.1",
+            "keyfrom": "fanyi.web",
+            "action": "FY_BY_REALTIME",
+            "typoResult": "false"
         }
-        sess.headers.update(headers)
-        url = 'http://dict.youdao.com/fsearch?q=%s' % (word)
+
+        data = parse.urlencode(data).encode()
+
+        headers = {
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            # 'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN,zh;q=0.9',
+            'Connection': 'keep-alive',
+            'Content-Length': len(data),
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Cookie': '__guid=204659719.2422785200799945700.1554675512727.244; OUTFOX_SEARCH_USER_ID=-1327275086@10.169.0.82; OUTFOX_SEARCH_USER_ID_NCOO=378292303.3354687; JSESSIONID=aaaLYwaICIOxi6ofRh8Nw; monitor_count=8; ___rl__test__cookies=1554693830913',
+            'Host': 'fanyi.youdao.com',
+            'Origin': 'http://fanyi.youdao.com',
+            'Referer': 'http://fanyi.youdao.com/',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+
         try:
-            resp = sess.get(url, timeout=100)
+            req = request.Request(url=url, data=data, headers=headers)
+            rsp = request.urlopen(req)
         except:
             return None
-        text = resp.content
-        if (resp.status_code == 200) and (text):
-            tree = ET.ElementTree(ET.fromstring(text))
-            returnPhrase = tree.find('return-phrase')
-            # print(word)
-            if returnPhrase.text.strip() != word:
-                return None
-            customTranslation = tree.find('custom-translation')
-            if not customTranslation:
-                return None
+        html = rsp.read().decode('utf-8')
+        json_data = json.loads(html)
+        if (rsp.getcode() == 200) and (json_data):
+            transs=json_data['translateResult'][0][0]['tgt']
+            # print(transs)
             trans = []
-            for t in customTranslation.findall('translation'):
-                transText = t[0].text
-                if transText:
-                    trans.append(transText)
+            trans.append(transs)
+            
             return '\n'.join(trans)
         else:
             return None
@@ -132,7 +157,7 @@ class Iciba(object):
 path = os.path.dirname(os.path.realpath(__file__))
 db={}
 # db = dbm.open(path + '/data/vocabulary', 'c')
-DEFAULT_SERVICE = 'bing'
+DEFAULT_SERVICE = 'youdao'
 
 
 class Client(object):
@@ -244,7 +269,7 @@ if __name__ == '__main__':
     if trans:
         if hyphen:
             # print(hyphen)
-            print("success")
+            print(word,"的翻译结果是:")
         print(trans)
         if args.pronounce:
             p1 = Process(target=C.pronounce, args=(args.pronounce,))

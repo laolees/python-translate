@@ -31,12 +31,13 @@ optional arguments:
   -V, --version         show program's version number and exit
 ```
 
-#### 关于本地数据使用
+#### ~~关于本地数据使用~~
 
-默认使用本地数据库，如需关闭，可使用 `-w` 或 `--webonly` 选项。
+~~默认使用本地数据库，如需关闭，可使用 `-w` 或 `--webonly` 选项。~~
 ```
-$ python2 translate.py hello -w
+~~$ python2 translate.py hello -w~~
 ```
+由于原作者用的dbm，我没有找到相应的使用方法，一直报该文件不正确，所以相关代码注释掉或者屏蔽了
 
 #### 关于翻译服务选择
 
